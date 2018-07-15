@@ -4,6 +4,7 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
 import com.mumimaps.android.myapplication.calendar.ScheduleCalendar
+import kotlinx.android.synthetic.main.activity_main.*
 import org.joda.time.LocalDate
 
 class MainActivity : AppCompatActivity(), ScheduleCalendar.Delegate {
@@ -20,12 +21,16 @@ class MainActivity : AppCompatActivity(), ScheduleCalendar.Delegate {
 
                 LocalDate.now().plusMonths(1).plusDays(1),
                 LocalDate.now().plusMonths(1).plusDays(2),
-                LocalDate.now().plusMonths(1).plusDays(3))
+                LocalDate.now().plusMonths(1).plusDays(3),
 
-        findViewById<ScheduleCalendar>(R.id.scheduleCalendar).apply {
+                LocalDate.now().plusMonths(2).plusDays(1),
+                LocalDate.now().plusMonths(2).plusDays(2),
+                LocalDate.now().plusMonths(2).plusDays(3))
+
+        scheduleCalendar.apply {
             scheduleDelegate = this@MainActivity
 
-            setUpSchedule(schedule)
+            updateSchedule(schedule)
         }
     }
 

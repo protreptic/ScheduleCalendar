@@ -12,6 +12,7 @@ import android.widget.FrameLayout
 import com.mumimaps.android.myapplication.R
 import kotlinx.android.synthetic.main.view_schedule_calendar.view.*
 import org.joda.time.LocalDate
+import org.joda.time.format.DateTimeFormat
 
 class ScheduleCalendar : FrameLayout {
 
@@ -30,16 +31,19 @@ class ScheduleCalendar : FrameLayout {
     inner class Adapter : PagerAdapter() {
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
-            val page = ScheduleCalendarMonth(context)
+            val date = schedule.keys.toList()[position]
+            val month = ScheduleCalendarMonth(context)
 
-            page.date = schedule.keys.toList()[position]
-            page.schedule = schedule[page.date] ?: setOf()
-            page.delegate = scheduleDelegate
-            page.adapter.notifyDataSetChanged()
+            month.delegate = scheduleDelegate
+            month.updateSchedule(schedule[date] ?: setOf())
 
-            container.addView(page)
+            container.addView(month)
 
-            return page
+            return month
+        }
+
+        override fun destroyItem(container: ViewGroup, position: Int, view: Any) {
+            container.removeView(view as View)
         }
 
         override fun isViewFromObject(view: View, page: Any) =
@@ -54,11 +58,11 @@ class ScheduleCalendar : FrameLayout {
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
     private val monthsAdapter = Adapter()
+    private val monthFormatter = DateTimeFormat.forPattern("MMMM, yyyy")
 
     var scheduleDelegate: Delegate? = null
     var schedule: Map<LocalDate, Set<LocalDate>> = mapOf()
 
-    var initDate: LocalDate? = LocalDate.now()
     var pickedDate: LocalDate? = null
 
     init {
@@ -81,16 +85,23 @@ class ScheduleCalendar : FrameLayout {
                 }
 
                 override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
-                override fun onPageSelected(position: Int) {}
+
+                override fun onPageSelected(position: Int) {
+                    notifyMonthChanged()
+                }
 
             })
         }
     }
 
-    fun setUpSchedule(newSchedule: Set<LocalDate>) {
-        schedule = prepareSchedule(newSchedule)
+    fun updateSchedule(newSchedule: Set<LocalDate>) {
+        if (newSchedule.isNotEmpty()) {
+            schedule = prepareSchedule(newSchedule)
 
-        monthsAdapter.notifyDataSetChanged()
+            monthsAdapter.notifyDataSetChanged()
+
+            notifyMonthChanged()
+        }
     }
 
     private fun prepareSchedule(schedule: Set<LocalDate>) =
@@ -98,10 +109,12 @@ class ScheduleCalendar : FrameLayout {
                 schedule.map { it.withDayOfMonth(1) }
                         .distinctBy { it.monthOfYear }
                         .sorted()
-                        .forEach { month -> put(month, schedule.filter { date ->
-                            date.withDayOfMonth(1) == month }.toSet())
+                        .forEach { month ->
+                            put(month, schedule.filter { date ->
+                                date.withDayOfMonth(1) == month }.toSet())
+                            }
                         }
-                    }.toMap()
+                        .toMap()
 
     private fun toPreviousMonth() {
         scheduleCalendarMonths.setCurrentItem(
@@ -114,7 +127,9 @@ class ScheduleCalendar : FrameLayout {
     }
 
     private fun notifyMonthChanged() {
+        val date = schedule.keys.toList()[scheduleCalendarMonths.currentItem]
 
+        scheduleCalendarTitle.text = monthFormatter.print(date)
     }
 
 }

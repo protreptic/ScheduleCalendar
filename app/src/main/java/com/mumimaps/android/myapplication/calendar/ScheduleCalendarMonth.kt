@@ -1,6 +1,7 @@
 package com.mumimaps.android.myapplication.calendar
 
 import android.content.Context
+import android.support.v4.content.ContextCompat.getColor
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
@@ -19,17 +20,26 @@ class ScheduleCalendarMonth : RecyclerView {
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
     constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle)
 
-    private val pageAdapter = Adapter()
+    private val monthAdapter = Adapter()
 
-    var date: LocalDate = LocalDate.now().withDayOfMonth(1)
-    var schedule: Set<LocalDate> = setOf()
     var delegate: Delegate? = null
 
+    var date: LocalDate = LocalDate.now().withDayOfMonth(1)
+    var pickedDate: LocalDate? = null
+
+    var schedule: Set<LocalDate> = setOf()
+
     init {
-        apply {
-            adapter = pageAdapter
-            layoutManager = GridLayoutManager(context, 7)
-        }
+        adapter = monthAdapter
+        layoutManager = GridLayoutManager(context, 7)
+        overScrollMode = View.OVER_SCROLL_NEVER
+    }
+
+    fun updateSchedule(newSchedule: Set<LocalDate>) {
+        date = newSchedule.first().withDayOfMonth(1)
+        schedule = newSchedule
+
+        adapter.notifyDataSetChanged()
     }
 
     inner class Adapter : RecyclerView.Adapter<DateViewHolder>() {
@@ -59,16 +69,29 @@ class ScheduleCalendarMonth : RecyclerView {
         private val format = DateTimeFormat.forPattern("dd")
 
         fun bind(date: LocalDate, schedule: Set<LocalDate>, delegate: Delegate?) {
-            itemView.setOnClickListener {
-                it.findViewById<TextView>(R.id.event_date).apply {
-                    if (schedule.contains(date)) {
-                        text = format.print(date)
-                    }
+            val dateText = itemView.findViewById<TextView>(R.id.monthDate).apply {
+                text = if (checkIfSameMonth(date, schedule)) {
+                    format.print(date)
+                } else {
+                    ""
                 }
+            }
 
-                delegate?.onDatePicked(date)
+            if (schedule.contains(date)) {
+                dateText.setTextColor(getColor(itemView.context, R.color.colorPrimary))
+
+                itemView.setOnClickListener {
+                    delegate?.onDatePicked(date)
+                }
+            } else {
+                dateText.setTextColor(getColor(itemView.context, android.R.color.darker_gray))
+
+                itemView.setOnClickListener(null)
             }
         }
+
+        private fun checkIfSameMonth(date: LocalDate, schedule: Set<LocalDate>) =
+                date.withDayOfMonth(1) == schedule.first().withDayOfMonth(1)
 
     }
 
